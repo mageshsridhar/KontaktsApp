@@ -13,7 +13,10 @@ struct ContentView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var createToggle = false
     @State private var searchText = ""
+    @State private var showingActionSheet = false
+    @State private var favoriteButton = ""
     @FetchRequest(sortDescriptors: [NSSortDescriptor(keyPath: \Allkontakts.name, ascending: true)]) private var kontakts : FetchedResults<Allkontakts>
+    @State private var tempKontakt : FetchedResults<Allkontakts>.Element = Allkontakts()
     private func saveContext(){
         do{
             try viewContext.save()
@@ -85,13 +88,29 @@ struct ContentView: View {
                                         Text("+"+kontakt.countryCode!+String(kontakt.number)).font(.caption)
                                     }
                                     Spacer()
+                                    if kontakt.isFavorite{
+                                        Image(systemName: "suit.heart.fill")
+                                    }
                                 }.padding()
                             }
-                            
-                        
+                            .onLongPressGesture {
+                                if kontakt.isFavorite{
+                                    self.favoriteButton = "Remove from Favorites"
+                                }
+                                else{
+                                    self.favoriteButton = "Add to Favorites"
+                                }
+                                tempKontakt = kontakt
+                                showingActionSheet.toggle()
+                            }
                         }
                     }.onDelete(perform:deleteKontakt)
                 }.ignoresSafeArea().navigationBarHidden(true)
+               .actionSheet(isPresented: $showingActionSheet){
+                ActionSheet(title: Text("Favorites"),buttons: [.default(Text(favoriteButton)){
+                    tempKontakt.isFavorite.toggle()
+                }, .cancel()])
+               }
         }
     }
     var body: some View {

@@ -20,11 +20,14 @@ struct EditKontaktView: View {
     @State private var isFavorite : Bool = false
     @State private var locationManager = CLLocationManager()
     @State private var showingAlert = false
-    @State private var allDetails = false
+    @State private var showError = false
     @State private var countryCode : String = "1"
     @State private var image: Data? = nil
     @State private var kontaktImage : UIImage?
     @State private var showingImagePicker = false
+    @State private var showingActionSheet = false
+    @State private var capture = false
+    @State private var errorMessage = ""
     init(kontakt: FetchedResults<Allkontakts>.Element){
         self.kontakt = kontakt
         self._name = State(wrappedValue: self.kontakt.name!)
@@ -59,6 +62,11 @@ struct EditKontaktView: View {
         saveContext()
         }
     }
+    func validateEmail(enteredEmail:String) -> Bool {
+        let emailFormat = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let emailPredicate = NSPredicate(format:"SELF MATCHES %@", emailFormat)
+        return emailPredicate.evaluate(with: enteredEmail)
+    }
     var body: some View {
         VStack{
             VStack{
@@ -69,18 +77,37 @@ struct EditKontaktView: View {
                 Spacer()
                 Button("Done"){
                     if name == "" || number == "" || email == "" || age == "" {
-                        allDetails.toggle()
+                        errorMessage = "Enter all the details"
+                        showError.toggle()
+                    }
+                    
+                    else if number.count < 10 || number.count > 10{
+                        errorMessage = "Invalid mobile number. Please enter a valid phone number."
+                        showError.toggle()
+                    }
+                    else if Int(age)! < 4 || Int(age)! > 105{
+                        errorMessage = "Invalid age. Please try again with a valid age."
+                        showError.toggle()
+                    }
+                    
+                    else if email.count > 100 {
+                        errorMessage = "Invalid email address. Please try again."
+                        showError.toggle()
+                    }
+                    else if !validateEmail(enteredEmail: email){
+                        errorMessage = "Invalid email format. Please try again."
+                        showError.toggle()
                     }
                     else{
                         updateKontakt()
                         presentationMode.wrappedValue.dismiss()
                     }
-                }.alert(isPresented: $allDetails){
-                    Alert(title: Text("Kontakt cannot be created"), message: Text("Enter all the details"), dismissButton: .default(Text("Close")))
+                }.alert(isPresented: $showError){
+                    Alert(title: Text("Kontakt cannot be created"), message: Text(errorMessage), dismissButton: .default(Text("Close")))
                 }
             }.padding()
                 if self.kontaktImage != nil{
-                    Button(action:{self.showingImagePicker.toggle()}){
+                    Button(action:{self.showingActionSheet.toggle()}){
                         Image(uiImage: self.kontaktImage!)
                             .resizable()
                             .frame(width: 100,height: 100)
@@ -144,8 +171,33 @@ struct EditKontaktView: View {
             }
         }.background(RoundedRectangle(cornerRadius: 20).fill(colorScheme == .dark ? Color.black : Color.white)).onAppear(perform: {
             locationFetcher.start()
-        }).sheet(isPresented: self.$showingImagePicker){
-            ImagePicker(image: self.$kontaktImage)
+        }).actionSheet(isPresented: $showingActionSheet) {
+            ActionSheet(title: Text("Select an option"), buttons: [
+                .default(Text("Capture an image")) { capture.toggle()
+                    showingImagePicker.toggle()
+                },
+                .default(Text("Select from Photo Library")) {
+                    showingImagePicker.toggle()
+                },
+                .cancel()
+            ])
+        }
+        .sheet(isPresented: $showingImagePicker){
+            if capture{
+                ImagePickerView(sourceType: .camera) { image in
+                withAnimation(.spring()){
+                    self.kontaktImage = image
+                    }
+                }
+            }
+            else{
+                ImagePickerView(sourceType: .photoLibrary) { image in
+                withAnimation(.spring()){
+                    self.kontaktImage = image
+                    }
+                }
+            }
+            
         }
     }
 }
