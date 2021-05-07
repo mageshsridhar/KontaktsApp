@@ -18,7 +18,7 @@ struct SeeKontaktView: View {
             Image(systemName: "phone.fill").font(.title).foregroundColor(.purple).padding(.horizontal)
             VStack(alignment:.leading,spacing: 2){
                 Text("Mobile Number").font(.caption)
-                Text("+"+kontakt.countryCode!+" "+String(kontakt.number)).font(.headline)
+                Link("+"+kontakt.countryCode!+" "+String(kontakt.number),destination: URL(string: "tel:\(kontakt.number)")!)
             }
         }.padding()
     }
@@ -36,7 +36,7 @@ struct SeeKontaktView: View {
             Image(systemName: "envelope.fill").font(.title).foregroundColor(.purple).padding(.horizontal)
             VStack(alignment:.leading,spacing: 2){
                 Text("Email Address").font(.caption)
-                Text(kontakt.email!).font(.headline)
+                Link(kontakt.email!,destination: URL(string: "mailto:\(kontakt.email!)")!)
             }
         }.padding()
     }
